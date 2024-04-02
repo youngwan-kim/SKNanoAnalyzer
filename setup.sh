@@ -24,8 +24,16 @@ elif [[ $RELEASE == *"9."* ]]; then
 else
     echo "@@@@ Not running on redhat 7, 8, or 9"
     echo "@@@@ Assuming root is installed in conda environment 'nano'"
-    source ~/.conda-activate
-    conda activate nano
+    if conda info --envs | grep -q "\bnano\b"; then
+        echo "Environment 'nano' found. Activating..."
+        conda activate nano
+    else
+        echo "Environment 'nano' not found. Creating..."
+        # Assuming nano.yaml is in the same directory as this script
+        conda env create -f nano.yaml
+        echo "Environment 'nano' created. Activating..."
+        conda activate nano
+    fi
 fi
 echo "@@@@ ROOT path: $ROOTSYS"
 
