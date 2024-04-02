@@ -51,3 +51,11 @@ echo "@@@@ reading LHPPDF from $LHAPDF_DATA_PATH"
 # env for correctionlibs
 export CORRECTION_LIBS=`correction config --libdir`
 export CORRECTION_CMAKE_PREFIX=`correction config --cmake`
+
+source $SKNANO_HOME/scripts/BashColorSets.sh
+
+## Todo list ##
+echo "@@@@ Printing To-Do Lists (Ctrl+C to skip)"
+python scripts/PrintToDoLists.py
+source $SKNANO_HOME/tmp/ToDoLists.sh
+rm $SKNANO_HOME/tmp/ToDoLists.sh
