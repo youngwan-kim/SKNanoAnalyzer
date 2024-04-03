@@ -10,6 +10,8 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3.0.3
         with:
           python-version: 3.11
+          conda-solver: classic
+          auto-update-conda: true
           auto-activate-base: false
       - name: Run setup.sh
         run: |
