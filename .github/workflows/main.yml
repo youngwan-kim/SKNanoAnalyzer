@@ -11,7 +11,9 @@ jobs:
         with:
           environment-file: nano_env.yaml
           activate-environment: nano
+          python-version: 3.11
+          auto-activate-base: false
       - name: Check Environment
         run: |
-          conda env list
+          conda list
           
