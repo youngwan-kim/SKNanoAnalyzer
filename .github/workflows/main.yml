@@ -10,6 +10,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3.0.3
         with:
           environment-file: nano_env.yaml
+          channels: conda-forge
           activate-environment: nano
           python-version: 3.11
           auto-activate-base: false
