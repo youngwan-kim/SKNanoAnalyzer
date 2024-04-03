@@ -13,5 +13,5 @@ jobs:
           auto-activate-base: false
       - name: Run setup.sh
         run: |
-          source setup.sh
+          source setup_actions.sh
           
