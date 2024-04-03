@@ -1,0 +1,17 @@
+name : build
+on: [push]
+jobs:
+  buildAnalyzer:
+    runs-on: ubuntu-latest
+    steps: 
+      - name: checkout repository
+        uses: actions/checkout@v2
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3.0.3
+        with:
+          environment-file: nano_env.yaml
+          activate-environment: nano
+      - name: Check Environment
+        run: |
+          conda env list
+          
