@@ -1,7 +1,19 @@
 build/*
-lib/*
+install/*
 test/*
 test.root
 CMakeFiles/*
 external/lhapdf/*
-config/config.choij
+external/libtorch/*
+config/config.*
+!config/config.default
+**/Skim*.json
+external/** 
+*.onnx
+!external/KinematicFitter
+templates/__pycache__/*
+
+#Temporary Added to my personal temp files
+DataCOPY/** 
+MCCOPY/**
+.vscode/**

@@ -1,92 +1,56 @@
 # SKNanoAnalyzer
 ---
 
-NOTE: THIS IS DEVELOPMENT VERSION!!
+## THIS IS DEVELOPMENT VERSION!!
 
-VERSION 0.1.0
-
-## Project Updates
-[HedgeDoc](https://demo.hedgedoc.org/VrWRIlceTjO9SPOVLKUNVA?view)
-
-## How to
-Recommend to fork the repo to your account.
-```bash
-# Clone the repository
-# jsonpog-integration should be cloned as a submodule if you don't use cvmfs
-git clone --recurse-submodules git@github.com:$GITACCOUNT/SKNanoAnalyzer.git
-
-# Add to your remote repo
-git remote add upstream git@github.com:CMSSNU/SKNanoAnalyzer.git
-git checkout $DEVBRANCH
-
-# create config file
-cp config/config.default config/config.$USER
-# edit the configuration!
-
-# first time setup
-source setup.sh    # you have to do this every new session
-```
-
-### Compilation
-Now using cmake for the default compiling management.
-Use scripts/build.sh for clean compilation.
-```bash
-./scripts/build.sh
-```
-
-Or you can do it manually
-```bash
-mkdir build && cd build
-cmake -DCMAKE_INSTALL_PREFIX=$SKNANO_HOME ..
-make
-make install
-cd $SKNANO_HOME
-```
-
-## Check modules
-Every module(or class) can be imported both in ROOT and python
-```cpp
-root -l
-Particle *p = new Particle;
-p->SetPtEtaPhiM(30, 2.1, 1.3, 0.1);
-p->SetCharge(1);
-p->Print()
-```
-
-```python
-python
-from ROOT import Particle
-p = Particle()
-p.SetPtEtaPhiM(30, 2.1, 1.3, 0.1)
-p.SetCharge(1)
-p.Print()
-```
-
-For testing other modules and analyzers, check scripts/test.py
-
-## About LHAPDFs
-For using LHAPDFHandler and PDFReweight classes, two possible options
-1. install lhapdf manually.
-```bash
-./scripts/install_lhapdf.sh
-```
-It would be run automatically for the first time setup.
-2. use lhapdf from cvmfs
-
-## About correctionlibs
-In the config/config.$USER file, there is an option to choose bewteen conda and cvmfs. When configuring your environment with conda, at least ROOT and correctionlibs should be installed:
-```bash
-# example
-conda env create -n nano python=3.11
-conda activate nano
-conda install -c conda-forge root
-pip install correctionlib
-```
+## Introduction
+- If you want to engage in the development and commit to the repository, please read [Development Guide](docs/DevelopmentGuide.md) first.
+- For setting up the environment and starting the analysis, please refer [Getting Started](docs/GettingStarted.md).
 
 ## To do
-- Make ExampleRun runable -> done
-- DataFormats -> Electron, Muon, LHE(Jin), Jet/GenJet (Yeonjun), Tau/FatJet(Youngwan), Gen(Taehee)
-- TODO: start validation task, check installation of correctionlib, private NanoAOD generation
-- external dependencies: LHAPDF / GEScaleSyst(?) / CorrectionLib
+### Assigned
+- [x] Add new features to ExampleRun.cc and make them manual: **Yeonjoon**
+- [ ] Check the update in jsonpog-correction when sourcing setup.sh: **Chihwan**
+- [x] Clean up gv0: **Jin**
+- [ ] Compare the sample list in SKFlat with the necessary samples, and bring them if necessary, check xsec, etc.: **Taehee+Eunsu+Jin**
+- [ ] Update the CheckStorages.sh to respect the folder structure under gv0: **Jin**
+- [ ] FatJet and Tau: **Youngwan**
+- [ ] SKNano.py skimming test **Yeonjoon**
+- [ ] Auto-Validation: Make validation files and check the consistency of the output for a specific NanoAOD file: **Jin**
+- [ ] Check for CVMFS environment compatability **deprecated**
+- [ ] Update MeasureTaggingEff.cc **Yeonjoon**
+- [ ] Rochester Correction Follow-up **Ask Hyonsan or Won(Contact: Chihwan)**
+- [ ] Update the network to 10G? (later)
+
+For DY, check the before/after of correction
+- [ ] Leptons **Jihoon**
+- [ ] Jets(B-tagging) **Taehee**
+
+## Make Tutorial
+- [ ] From make Training tree, Export ONNX, Use this model in the Analyzer : **Yeonjoon(Review: Youngwan)**
+- [ ] Simple DY tutorial : **Eunsu(Review: Jin)**
+- [ ] tt reconstruction using Kinematic Fit : **Minseok(Review: Byunghun)**
+- [ ] tt reconstruction using KinFit Library : **Yeonjoon**
+- [ ] NLO vs LO comparison in MadGraph Tutorial: **Jin**
+- [ ] Tau+Fatjet Tutorial : **Youngwan**
+
+- [ ] At least try to install untill next meeting : ***All***
 
 
+## Useful links
+- [MiniAOD](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookMiniAOD)
+- [NanoAOD](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD)
+- [NanoAOD-Tools (for postproc)](https://github.com/cms-sw/cmssw/tree/master/PhysicsTools/NanoAODTools)
+- [SNU_SKFlatProduction](https://docs.google.com/spreadsheets/d/12SfHxUR_1_-13Tzt6mI0slnenQeeCT40zDdggx_KPR8/edit?pli=1#gid=1739893496)
+- [NanoAOD wiki@gitlab](https://gitlab.cern.ch/cms-nanoAOD/nanoaod-doc/-/wikis/home)
+- [Run2 Summer20 UL](https://docs.google.com/spreadsheets/d/1ABl2p2uwr2EfEbolBEVNcKb_fIXigYY9sqCRT8XIi1Q/edit#gid=1318927481)
+- [Run3 Common Bkg Sample Preparation](https://docs.google.com/spreadsheets/d/1xEbHtxzJVaWJpxDrJ7tSpxcVQMRIFbZeoeO7davNFMA/edit#gid=1396344675)
+- [SKFlatMaker](https://github.com/CMSSNU/SKFlatMaker)
+- [SKFlatAnalyzer](https://github.com/CMSSNU/SKFlatAnalyzer)
+- [SKFlat Manual](https://jskim.web.cern.ch/jskim/SKFlat/Manual/Manual_SKFlat.pdf)
+- [NanoAOD Branches](https://cms-nanoaod-integration.web.cern.ch/autoDoc/)
+- [PdmV Run3 DATA full table](https://pdmv-pages.web.cern.ch/run_3_data/full_table.html)
+- [CMS 13.6TeV SM cross sections](https://twiki.cern.ch/twiki/bin/viewauth/CMS/MATRIXCrossSectionsat13p6TeV)
+- [LHC ttbar NNLO+NNLL cross sections](https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO)
+- [LHC Single Top NNLO+NNLL cross sections](https://twiki.cern.ch/twiki/bin/view/LHCPhysics/SingleTopRefXsec)
+- [LHC Higgs Cross Section](https://twiki.cern.ch/twiki/bin/view/LHCPhysics/HiggsXSBR)
