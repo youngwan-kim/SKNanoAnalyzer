@@ -20,20 +20,47 @@ jobs:
 
     steps:
       - name: Setup SSH for CERN GitLab
+        shell: bash
+        env: 
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          mkdir -p /root/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /root/.ssh/id_ed25519
+          set -euo pipefail
+          test -n "$SSH_PRIVATE_KEY"
+
+          install -d -m 700 /root/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > /root/.ssh/id_ed25519
           chmod 600 /root/.ssh/id_ed25519
           ssh-keyscan -p 7999 gitlab.cern.ch >> /root/.ssh/known_hosts
           chmod 644 /root/.ssh/known_hosts
-          eval "$(ssh-agent -s)"
-          ssh-add /root/.ssh/id_ed25519
-          ssh -T git@gitlab.cern.ch -p 7999 || true
+
+          cat > /root/.ssh/config <<'EOF'
+          Host gitlab.cern.ch
+            HostName gitlab.cern.ch
+            Port 7999
+            User git
+            IdentityFile /root/.ssh/id_ed25519
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+          chmod 600 /root/.ssh/config
+          ssh -o BatchMode=yes -T git@gitlab.cern.ch || true
+          
+          git ls-remote \
+           ssh://git@gitlab.cern.ch:7999/choij/jsonpog-integration.git \
+           HEAD
           
       - name: Checkout Code
         uses: actions/checkout@v4
+        env:
+          GIT_SSH_COMMAND: >-
+           ssh
+           -i /root/.ssh/id_ed25519
+           -o IdentitiesOnly=yes
+           -o StrictHostKeyChecking=yes
+           -o UserKnownHostsFile=/root/.ssh/known_hosts
         with:
-          submodules: true
+          submodules: recursive
+          persist-credentials: false
 
       - name: Setup and Build
         run: source ./setup.sh && ./scripts/build.sh
