@@ -361,6 +361,37 @@ public:
     GenJetViewCollection GetAllGenJetViews();
     LHEViewCollection GetAllLHEViews();
     TauViewCollection GetAllTauViews();
+    void PopulateTauMomentum(TauSoA &storage);
+
+    // Turn the tau energy scale on. Off by default, and deliberately so: TES
+    // moves taus across the offline pt cut, so switching it on changes which
+    // events an analysis selects, and it is only correct once the shift is
+    // also propagated to MET (PropagateTauSystToMET). An analyzer opts in when
+    // it has done both.
+    //
+    // `id` supplies the two working points the correction is keyed on, and
+    // `variation` picks the lane: nominal for the central pass, up/down for a
+    // TES systematic lane.
+    void EnableTauEnergyScale(
+        const TauView::TauID &id,
+        MyCorrection::variation variation = MyCorrection::variation::nom);
+    bool TauEnergyScaleEnabled() const noexcept { return tauESEnabled; }
+
+    // Switch which energy-scale lane the tau momenta hold. Re-populates the
+    // cached TauSoA in place, so a TauViewCollection already handed out stays
+    // valid and simply returns the other lane's numbers -- which means
+    // SelectTauIndices, RemoveOverlapIndices and TauView::P4() all follow
+    // without a TES argument threaded through them. Same shape as
+    // ApplyJetScaleVariation mutating the JetSoA.
+    //
+    // No-op when the scale is disabled.
+    void SetTauEnergyScaleVariation(MyCorrection::variation variation);
+
+    // Shifts MET by the (corrected - raw) tau momenta, the same delta the
+    // taus themselves moved by. Without it MET is inconsistent with every tau
+    // observable in the event.
+    void PropagateTauSystToMET(const TauViewCollection &taus,
+                               Particle &met) const;
     std::vector<std::size_t>
     SelectTauIndices(const TauViewCollection &taus,
                      const std::vector<std::size_t> &seed_indices,
@@ -677,6 +708,11 @@ protected:
     JetViewCollection cachedJetViews;
     Long64_t cachedGenViewsEntry = kInvalidCacheEntry;
     GenViewCollection cachedGenViews;
+    Long64_t cachedTauViewsEntry = kInvalidCacheEntry;
+    TauViewCollection cachedTauViews;
+    bool tauESEnabled = false;
+    TauView::TauID tauESId{};
+    MyCorrection::variation tauESVariation = MyCorrection::variation::nom;
     Long64_t cachedGenJetViewsEntry = kInvalidCacheEntry;
     GenJetViewCollection cachedGenJetViews;
     std::unordered_map<std::string, std::unique_ptr<float>> scalar_float_storage;

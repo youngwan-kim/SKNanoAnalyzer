@@ -154,6 +154,43 @@ public:
     float GetTauIDSF_vsMu(const TauView::TauID &id, const TauViewCollection &taus,
                           const variation syst = variation::nom) const;
 
+    // Tau energy scale. This is a correction to the tau four-momentum, not a
+    // weight: a TES shift moves taus across the offline pt cut, so it has to
+    // be applied before the selection and propagated to MET.
+    //
+    // Measured against the 2024 file rather than assumed:
+    //   dm       only {0, 1, 10, 11}. 2, 5 and 6 THROW.
+    //   genmatch every value 0-6 evaluates; the file transforms them, so
+    //            0/2/4/6 return exactly 1, 1/3 the e->tau scale, 5 the
+    //            genuine-tau scale.
+    // (An earlier version of this comment said decay mode 2 was covered. It is
+    // not.) TauView::TauID::requireCalibratedDecayMode keeps the uncovered
+    // modes out of the selection; if that is switched off, guard the call.
+    float GetTauES(const float pt, const float eta, const int dm,
+                   const int genmatch, const TString &wp_vsJet,
+                   const TString &wp_vsE,
+                   const variation syst = variation::nom) const;
+    float GetTauES(const TauView::TauID &id, const TauView &tau,
+                   const variation syst = variation::nom) const;
+
+    // Tau trigger scale factor.
+    //
+    // Two caveats that the return value cannot express, see
+    // docs/SYSTEMATICS.md 4 in the WRTauAnalysis module:
+    //   - the only working point in the 2024 file is PNet Medium, while a
+    //     DeepTau-based selection is a different tagger at a different point;
+    //   - there is no entry for a single-tau path such as
+    //     HLT_LooseDeepTauPFTauHPS180, so SingleTau has no SF at all.
+    // Decay modes outside {0, 1, 10, 11} return -1.0 from the POG file rather
+    // than raising; this wrapper turns that into 1.0 so a bad decay mode can
+    // never flip the sign of an event weight.
+    enum class TauTrigType { DiTau, ETau, MuTau, DiTauJet };
+    float GetTauTriggerSF(const float pt, const int dm, const TauTrigType type,
+                          const variation syst = variation::nom) const;
+    float GetTauTriggerSF(const TauTrigType type, const TauViewCollection &taus,
+                          const std::vector<std::size_t> &indices,
+                          const variation syst = variation::nom) const;
+
     // Trigger
     // Single lepton trigger from POG
     float GetMuonTriggerEff(const TString &Muon_Trigger_Eff_Key, const float abseta, const float pt, const bool isData, const variation syst = variation::nom) const;
@@ -482,6 +519,8 @@ private:
     LazyRef cachedTauIDSFvsJet;
     LazyRef cachedTauIDSFvsE;
     LazyRef cachedTauIDSFvsMu;
+    LazyRef cachedTauES;
+    LazyRef cachedTauTrigger;
 
     // Whether the electron HLT corrections declare a "phi" input.  Probing
     // this per electron used to allocate a vector of all input names.
