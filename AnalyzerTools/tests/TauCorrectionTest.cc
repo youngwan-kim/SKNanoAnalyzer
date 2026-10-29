@@ -129,9 +129,17 @@ TEST_F(TauCorrection, TauEnergyScaleIsAFewPercentAndOrdered) {
     }
 }
 
-// genmatch 5 is a genuine tau; anything else is a fake and is not rescaled.
-TEST_F(TauCorrection, TauEnergyScaleOnlyRescalesGenuineTaus) {
+TEST_F(TauCorrection, TauEnergyScaleRescalesGenuineTausAndElectronFakes) {
     EXPECT_NE(mc_->GetTauES(100.f, 0.5f, 0, 5, "Tight", "Tight"), 1.f);
+    EXPECT_NE(mc_->GetTauES(100.f, 0.5f, 0, 1, "Tight", "Tight"), 1.f);
+}
+
+TEST_F(TauCorrection, TauEnergyScaleLeavesJetAndMuonFakesUnscaled) {
+    for (const int genmatch : {0, 2, 4, 6})
+        for (const int dm : {0, 1, 10, 11})
+            EXPECT_FLOAT_EQ(
+                mc_->GetTauES(100.f, 0.5f, dm, genmatch, "Tight", "Tight"), 1.f)
+                << "genmatch " << genmatch << " dm " << dm;
 }
 
 // --- Tau trigger ------------------------------------------------------------

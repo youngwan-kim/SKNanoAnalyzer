@@ -139,15 +139,18 @@ TauViewCollection AnalyzerCore::GetAllTauViews() {
 
 void AnalyzerCore::EnableTauEnergyScale(const TauView::TauID &id,
                                         const MyCorrection::variation variation) {
-  tauESEnabled = true;
-  tauESId = id;
-  tauESVariation = variation;
-  
   if (!id.requireCalibratedDecayMode)
     throw SKNano::ConfigError(
         "[AnalyzerCore::EnableTauEnergyScale] the tau energy scale is defined "
         "only for decay modes 0, 1, 10 and 11, so it cannot be enabled for an "
         "ID with requireCalibratedDecayMode = false");
+
+  tauESEnabled = true;
+  tauESId = id;
+  tauESVariation = variation;
+  const auto storage = cachedTauViews.storage();
+  if (storage)
+    storage->momentumReady = false;
 }
 
 void AnalyzerCore::SetTauEnergyScaleVariation(

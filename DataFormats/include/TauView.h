@@ -109,9 +109,7 @@ public:
                    ? store_->correctedMass[index_]
                    : store_->mass[index_];
     }
-    // The uncorrected NanoAOD values. Correction inputs are binned in these:
-    // the TAU POG measures its scale factors against the reconstructed tau,
-    // not against a tau that already carries the scale.
+    
     float MiniAODPt() const { return store_->pt[index_]; }
     float MiniAODM() const { return store_->mass[index_]; }
     float TesPtUp() const {
