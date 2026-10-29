@@ -5,6 +5,8 @@
 bool TauView::PassID(const TauID &id) const {
     if (id.requireNewDM && !idDecayModeNewDMs())
         return false;
+    if (id.requireCalibratedDecayMode && !IsCalibratedDecayMode(DecayMode()))
+        return false;
     if (std::abs(dZ()) >= id.maxDz)
         return false;
     // The stored column is the tightest point the tau passes, so ">=" is the

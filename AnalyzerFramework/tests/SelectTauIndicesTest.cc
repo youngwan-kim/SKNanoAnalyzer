@@ -12,8 +12,9 @@ using sknano_test::MakeTauCollection;
 using sknano_test::MakeTaus;
 
 // Medium vsJet, VVLoose vsE, Loose vsMu.
+// vsJet, vsE, vsMu, requireNewDM, requireCalibratedDecayMode, maxDz.
 const TauView::TauID kMediumTau{LeptonID::TauWorkingPoint::MEDIUM, LeptonID::TauWorkingPoint::VVLOOSE, LeptonID::TauWorkingPointVsMu::LOOSE,
-                             true, 0.2f};
+                             true, true, 0.2f};
 
 TEST(SelectTauIndices, KeepsOnlyTausPassingEveryCut) {
     // 0: passes.  1: fails pT.  2: fails eta.  3: fails the vsJet axis.
@@ -77,4 +78,42 @@ TEST(SelectTauIndices, EmptyCollectionYieldsEmptyResult) {
     EXPECT_TRUE(core.SelectTauIndices(taus, kMediumTau, 50.f, 2.3f).empty());
 }
 
+}
+
+TEST(SelectTauIndices, RejectsDecayModesThePOGDoesNotCalibrate) {
+    const std::vector<unsigned char> dms{0, 1, 2, 5, 6, 10, 11};
+    const std::size_t n = dms.size();
+    auto f = MakeTaus(std::vector<float>(n, 100.f), std::vector<float>(n, 0.5f),
+                      std::vector<unsigned char>(n, 6),
+                      std::vector<unsigned char>(n, 6),
+                      std::vector<unsigned char>(n, 4),
+                      std::vector<float>(n, 0.f), dms);
+    const auto taus = MakeTauCollection(f);
+    AnalyzerCore core;
+
+    const auto selected = core.SelectTauIndices(taus, kMediumTau, 50.f, 2.3f);
+
+    ASSERT_EQ(selected.size(), 4u);
+    for (const auto index : selected) {
+        const unsigned char dm = dms[index];
+        EXPECT_TRUE(dm == 0 || dm == 1 || dm == 10 || dm == 11)
+            << "decay mode " << static_cast<int>(dm) << " should be rejected";
+    }
+}
+
+TEST(SelectTauIndices, KeepsUncalibratedDecayModesWhenAsked) {
+    const std::vector<unsigned char> dms{0, 5, 6};
+    const std::size_t n = dms.size();
+    auto f = MakeTaus(std::vector<float>(n, 100.f), std::vector<float>(n, 0.5f),
+                      std::vector<unsigned char>(n, 6),
+                      std::vector<unsigned char>(n, 6),
+                      std::vector<unsigned char>(n, 4),
+                      std::vector<float>(n, 0.f), dms);
+    const auto taus = MakeTauCollection(f);
+    AnalyzerCore core;
+
+    TauView::TauID relaxed = kMediumTau;
+    relaxed.requireCalibratedDecayMode = false;
+
+    EXPECT_EQ(core.SelectTauIndices(taus, relaxed, 50.f, 2.3f).size(), 3u);
 }

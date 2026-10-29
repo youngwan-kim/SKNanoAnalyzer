@@ -3,6 +3,8 @@
 
 #include <cmath>
 #include <cstddef>
+#include <functional>
+#include <vector>
 
 #include "EventRange.h"
 #include "LeptonIDEnums.h"
@@ -28,7 +30,39 @@ struct TauSoA {
     ColumnView<float> rawDeepTau2018v2p5VSjet;
     ColumnView<float> rawDeepTau2018v2p5VSmu;
 
+    std::vector<float> correctedPt;
+    std::vector<float> correctedMass;
+    std::vector<float> tesPtUp;
+    std::vector<float> tesPtDown;
+    std::vector<float> tesMassUp;
+    std::vector<float> tesMassDown;
+    std::function<void()> populateMomentum;
+    mutable bool momentumReady = false;
+    mutable bool momentumComputing = false;
+
     std::size_t size() const { return pt.size(); }
+
+    void ensureMomentum() const {
+        if (momentumReady)
+            return;
+        if (momentumComputing)
+            throw SKNano::LogicError("[TauSoA] recursive momentum computation");
+        if (!populateMomentum) {
+            momentumReady = true;
+            return;
+        }
+        momentumComputing = true;
+        try {
+            populateMomentum();
+            momentumComputing = false;
+        } catch (...) {
+            momentumComputing = false;
+            throw;
+        }
+        if (!momentumReady)
+            throw SKNano::LogicError(
+                "[TauSoA] momentum provider did not publish a lane");
+    }
 };
 
 class TauView {
@@ -46,18 +80,61 @@ public:
         WorkingPoint vsE = WorkingPoint::NONE;
         WorkingPointVsMu vsMu = WorkingPointVsMu::NONE;
         bool requireNewDM = true;
+        bool requireCalibratedDecayMode = true;
         float maxDz = 0.2f;
     };
+
+    // The decay modes every TAU correctionlib input covers.
+    static constexpr bool IsCalibratedDecayMode(unsigned char dm) {
+        return dm == 0 || dm == 1 || dm == 10 || dm == 11;
+    }
 
     TauView() = default;
     TauView(const TauSoA *storage, std::size_t index)
         : store_(storage), index_(index) {}
 
     bool valid() const { return store_ && index_ < store_->size(); }
-    float Pt() const { return store_->pt[index_]; }
+
+    // The energy-scale-corrected momentum, which is what the selection cuts on
+    // and what every observable should be built from. Equal to MiniAODPt()
+    // unless AnalyzerCore::EnableTauEnergyScale was called.
+    float Pt() const {
+        store_->ensureMomentum();
+        return index_ < store_->correctedPt.size() ? store_->correctedPt[index_]
+                                                   : store_->pt[index_];
+    }
+    float M() const {
+        store_->ensureMomentum();
+        return index_ < store_->correctedMass.size()
+                   ? store_->correctedMass[index_]
+                   : store_->mass[index_];
+    }
+    // The uncorrected NanoAOD values. Correction inputs are binned in these:
+    // the TAU POG measures its scale factors against the reconstructed tau,
+    // not against a tau that already carries the scale.
+    float MiniAODPt() const { return store_->pt[index_]; }
+    float MiniAODM() const { return store_->mass[index_]; }
+    float TesPtUp() const {
+        store_->ensureMomentum();
+        return index_ < store_->tesPtUp.size() ? store_->tesPtUp[index_] : Pt();
+    }
+    float TesPtDown() const {
+        store_->ensureMomentum();
+        return index_ < store_->tesPtDown.size() ? store_->tesPtDown[index_]
+                                                 : Pt();
+    }
+    float TesMassUp() const {
+        store_->ensureMomentum();
+        return index_ < store_->tesMassUp.size() ? store_->tesMassUp[index_]
+                                                 : M();
+    }
+    float TesMassDown() const {
+        store_->ensureMomentum();
+        return index_ < store_->tesMassDown.size() ? store_->tesMassDown[index_]
+                                                   : M();
+    }
     float Eta() const { return store_->eta[index_]; }
     float Phi() const { return store_->phi[index_]; }
-    float M() const { return store_->mass[index_]; }
     float dXY() const { return store_->dxy[index_]; }
     float dZ() const { return store_->dz[index_]; }
     short Charge() const { return store_->charge[index_]; }

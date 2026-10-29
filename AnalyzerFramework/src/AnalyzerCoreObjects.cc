@@ -104,6 +104,10 @@ LHEViewCollection AnalyzerCore::GetAllLHEViews() {
 }
 
 TauViewCollection AnalyzerCore::GetAllTauViews() {
+  const Long64_t entry = CurrentEntry();
+  if (cachedTauViewsEntry == entry)
+    return cachedTauViews;
+
   auto storage = std::make_shared<TauSoA>();
   storage->pt.bind(&Tau_pt);
   storage->eta.bind(&Tau_eta);
@@ -122,7 +126,96 @@ TauViewCollection AnalyzerCore::GetAllTauViews() {
   storage->rawDeepTau2018v2p5VSe.bind(&Tau_rawDeepTau2018v2p5VSe);
   storage->rawDeepTau2018v2p5VSjet.bind(&Tau_rawDeepTau2018v2p5VSjet);
   storage->rawDeepTau2018v2p5VSmu.bind(&Tau_rawDeepTau2018v2p5VSmu);
-  return TauViewCollection(std::move(storage));
+
+  storage->populateMomentum = [this, target = storage.get()] {
+    PopulateTauMomentum(*target);
+  };
+
+  TauViewCollection result(std::move(storage));
+  cachedTauViews = result;
+  cachedTauViewsEntry = entry;
+  return cachedTauViews;
+}
+
+void AnalyzerCore::EnableTauEnergyScale(const TauView::TauID &id,
+                                        const MyCorrection::variation variation) {
+  tauESEnabled = true;
+  tauESId = id;
+  tauESVariation = variation;
+  
+  if (!id.requireCalibratedDecayMode)
+    throw SKNano::ConfigError(
+        "[AnalyzerCore::EnableTauEnergyScale] the tau energy scale is defined "
+        "only for decay modes 0, 1, 10 and 11, so it cannot be enabled for an "
+        "ID with requireCalibratedDecayMode = false");
+}
+
+void AnalyzerCore::SetTauEnergyScaleVariation(
+    const MyCorrection::variation variation) {
+    if (!tauESEnabled || tauESVariation == variation)
+        return;
+    tauESVariation = variation;
+    const auto storage = cachedTauViews.storage();
+    if (storage)
+        storage->momentumReady = false;
+}
+
+void AnalyzerCore::PopulateTauMomentum(TauSoA &storage) {
+  const std::size_t count = storage.pt.size();
+  storage.correctedPt.resize(count);
+  storage.correctedMass.resize(count);
+  storage.tesPtUp.resize(count);
+  storage.tesPtDown.resize(count);
+  storage.tesMassUp.resize(count);
+  storage.tesMassDown.resize(count);
+
+  const bool apply = tauESEnabled && !IsDATA && myCorr;
+  for (std::size_t index = 0; index < count; ++index) {
+    const float pt = storage.pt[index];
+    const float mass = storage.mass[index];
+    float scale = 1.f;
+    float scaleUp = 1.f;
+    float scaleDown = 1.f;
+
+    if (apply && TauView::IsCalibratedDecayMode(storage.decayMode[index])) {
+      const int dm = static_cast<int>(storage.decayMode[index]);
+      const int genmatch = static_cast<int>(storage.genPartFlav[index]);
+      const TString vsJet = ToCorrectionString(tauESId.vsJet);
+      const TString vsE = ToCorrectionString(tauESId.vsE);
+      const float eta = storage.eta[index];
+      scale = myCorr->GetTauES(pt, eta, dm, genmatch, vsJet, vsE,
+                               tauESVariation);
+      scaleUp = myCorr->GetTauES(pt, eta, dm, genmatch, vsJet, vsE,
+                                 MyCorrection::variation::up);
+      scaleDown = myCorr->GetTauES(pt, eta, dm, genmatch, vsJet, vsE,
+                                   MyCorrection::variation::down);
+    }
+
+    storage.correctedPt[index] = pt * scale;
+    storage.correctedMass[index] = mass * scale;
+    storage.tesPtUp[index] = pt * scaleUp;
+    storage.tesPtDown[index] = pt * scaleDown;
+    storage.tesMassUp[index] = mass * scaleUp;
+    storage.tesMassDown[index] = mass * scaleDown;
+  }
+  storage.momentumReady = true;
+}
+
+void AnalyzerCore::PropagateTauSystToMET(const TauViewCollection &taus,
+                                         Particle &met) const {
+  if (!tauESEnabled || IsDATA)
+    return;
+
+  float deltaPx = 0.f;
+  float deltaPy = 0.f;
+  for (const auto &tau : taus) {
+    const float phi = tau.Phi();
+    const float shift = tau.Pt() - tau.MiniAODPt();
+    deltaPx += shift * std::cos(phi);
+    deltaPy += shift * std::sin(phi);
+  }
+  
+  met.SetXYZM(met.Px() - deltaPx, met.Py() - deltaPy, 0., 0.);
 }
 
 std::vector<std::size_t>

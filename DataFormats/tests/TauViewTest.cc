@@ -84,36 +84,61 @@ TEST(TauViewRawScores, UnboundRawDiscriminatorsReturnSentinel) {
 TEST(TauViewID, AcceptsTauMeetingEveryAxis) {
     auto f = MakeTaus({100.f}, {0.5f}, {6}, {6}, {4});
     const TauView::TauID id{LeptonID::TauWorkingPoint::MEDIUM, LeptonID::TauWorkingPoint::VVLOOSE, LeptonID::TauWorkingPointVsMu::LOOSE,
-                         true, 0.2f};
+                         true, true, 0.2f};
     EXPECT_TRUE(f->at(0).PassID(id));
 }
 
 TEST(TauViewID, RejectsTauFailingTheJetAxis) {
     auto f = MakeTaus({100.f}, {0.5f}, {4}, {6}, {4});
     const TauView::TauID id{LeptonID::TauWorkingPoint::MEDIUM, LeptonID::TauWorkingPoint::VVLOOSE, LeptonID::TauWorkingPointVsMu::LOOSE,
-                         true, 0.2f};
+                         true, true, 0.2f};
     EXPECT_FALSE(f->at(0).PassID(id));
 }
 
 TEST(TauViewID, RejectsTauFailingTheMuonAxis) {
     auto f = MakeTaus({100.f}, {0.5f}, {6}, {6}, {1});
     const TauView::TauID id{LeptonID::TauWorkingPoint::MEDIUM, LeptonID::TauWorkingPoint::VVLOOSE, LeptonID::TauWorkingPointVsMu::TIGHT,
-                         true, 0.2f};
+                         true, true, 0.2f};
     EXPECT_FALSE(f->at(0).PassID(id));
 }
 
 TEST(TauViewID, NoneWorkingPointDisablesThatAxis) {
     auto f = MakeTaus({100.f}, {0.5f}, {6}, {0}, {0});
     const TauView::TauID id{LeptonID::TauWorkingPoint::TIGHT, LeptonID::TauWorkingPoint::NONE, LeptonID::TauWorkingPointVsMu::NONE,
-                         true, 0.2f};
+                         true, true, 0.2f};
     EXPECT_TRUE(f->at(0).PassID(id));
 }
 
 TEST(TauViewID, RejectsTauFailingTheImpactParameterCut) {
     auto f = MakeTaus({100.f}, {0.5f}, {6}, {6}, {4}, {0.5f});
     const TauView::TauID id{LeptonID::TauWorkingPoint::MEDIUM, LeptonID::TauWorkingPoint::VVLOOSE, LeptonID::TauWorkingPointVsMu::LOOSE,
-                         true, 0.2f};
+                         true, true, 0.2f};
     EXPECT_FALSE(f->at(0).PassID(id));
+}
+
+// Decay modes 2, 5 and 6 pass idDecayModeNewDMs but no TAU correction covers
+// them: tau_energy_scale and VSe throw and tau_trigger returns -1.0, which
+// flips the sign of the event weight. docs/SYSTEMATICS.md 2.1.
+TEST(TauViewID, RejectsDecayModesThePOGDoesNotCalibrate) {
+    const TauView::TauID id{LeptonID::TauWorkingPoint::MEDIUM, LeptonID::TauWorkingPoint::VVLOOSE, LeptonID::TauWorkingPointVsMu::LOOSE,
+                         true, true, 0.2f};
+    for (const unsigned char dm : {0, 1, 10, 11}) {
+        auto f = MakeTaus({100.f}, {0.5f}, {6}, {6}, {4}, {0.f}, {dm});
+        EXPECT_TRUE(f->at(0).PassID(id)) << "dm " << static_cast<int>(dm);
+    }
+    for (const unsigned char dm : {2, 5, 6}) {
+        auto f = MakeTaus({100.f}, {0.5f}, {6}, {6}, {4}, {0.f}, {dm});
+        EXPECT_FALSE(f->at(0).PassID(id)) << "dm " << static_cast<int>(dm);
+    }
+}
+
+TEST(TauViewID, KeepsUncalibratedDecayModesWhenTheFlagIsOff) {
+    TauView::TauID id{LeptonID::TauWorkingPoint::MEDIUM, LeptonID::TauWorkingPoint::VVLOOSE, LeptonID::TauWorkingPointVsMu::LOOSE,
+                      true, false, 0.2f};
+    for (const unsigned char dm : {2, 5, 6}) {
+        auto f = MakeTaus({100.f}, {0.5f}, {6}, {6}, {4}, {0.f}, {dm});
+        EXPECT_TRUE(f->at(0).PassID(id)) << "dm " << static_cast<int>(dm);
+    }
 }
 
 TEST(TauViewID, WorkingPointEnumMapsToPogStrings) {

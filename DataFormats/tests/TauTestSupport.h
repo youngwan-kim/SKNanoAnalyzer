@@ -67,7 +67,8 @@ MakeTaus(const std::vector<float> &pts, const std::vector<float> &etas,
          const std::vector<unsigned char> &vsJet,
          const std::vector<unsigned char> &vsE,
          const std::vector<unsigned char> &vsMu,
-         const std::vector<float> &dzs = {}) {
+         const std::vector<float> &dzs = {},
+         const std::vector<unsigned char> &dms = {}) {
     auto f = std::make_shared<TauFixture>();
     const std::size_t n = pts.size();
 
@@ -80,8 +81,8 @@ MakeTaus(const std::vector<float> &pts, const std::vector<float> &etas,
                                             : dzs);
     f->charge = VectorColumn<short>(std::vector<short>(n, 1));
     f->genPartIdx = VectorColumn<short>(std::vector<short>(n, -1));
-    f->decayMode =
-        VectorColumn<unsigned char>(std::vector<unsigned char>(n, 0));
+    f->decayMode = VectorColumn<unsigned char>(
+        dms.empty() ? std::vector<unsigned char>(n, 0) : dms);
     f->genPartFlav =
         VectorColumn<unsigned char>(std::vector<unsigned char>(n, 5));
     f->vsJet = VectorColumn<unsigned char>(vsJet);

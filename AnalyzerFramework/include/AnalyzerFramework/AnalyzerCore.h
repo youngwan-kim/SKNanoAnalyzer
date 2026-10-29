@@ -361,8 +361,16 @@ public:
     GenJetViewCollection GetAllGenJetViews();
     LHEViewCollection GetAllLHEViews();
     TauViewCollection GetAllTauViews();
-    std::vector<std::size_t>
-    SelectTauIndices(const TauViewCollection &taus,
+    void PopulateTauMomentum(TauSoA &storage);
+
+    void EnableTauEnergyScale(
+        const TauView::TauID &id,
+        MyCorrection::variation variation = MyCorrection::variation::nom);
+    bool TauEnergyScaleEnabled() const noexcept { return tauESEnabled; }
+
+    void SetTauEnergyScaleVariation(MyCorrection::variation variation);
+    void PropagateTauSystToMET(const TauViewCollection &taus, Particle &met) const;
+    std::vector<std::size_t> SelectTauIndices(const TauViewCollection &taus,
                      const std::vector<std::size_t> &seed_indices,
                      const TauView::TauID &id, const float ptmin,
                      const float fetamax) const;
@@ -677,6 +685,11 @@ protected:
     JetViewCollection cachedJetViews;
     Long64_t cachedGenViewsEntry = kInvalidCacheEntry;
     GenViewCollection cachedGenViews;
+    Long64_t cachedTauViewsEntry = kInvalidCacheEntry;
+    TauViewCollection cachedTauViews;
+    bool tauESEnabled = false;
+    TauView::TauID tauESId{};
+    MyCorrection::variation tauESVariation = MyCorrection::variation::nom;
     Long64_t cachedGenJetViewsEntry = kInvalidCacheEntry;
     GenJetViewCollection cachedGenJetViews;
     std::unordered_map<std::string, std::unique_ptr<float>> scalar_float_storage;
